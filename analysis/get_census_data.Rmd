@@ -1,0 +1,85 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(tidyverse)
+require(tidycensus)
+require(reshape2)
+```
+
+### Multi-variable List for block groups
+
+```{r}
+
+bg_census_vars <- c(
+                 "B02001_001", # population total race
+                 "B02001_002", # white alone
+                 "B02001_003", # Black or African American alone
+                 "B02001_004", # American Indian and Alaska Native alone
+                 "B03002_012", # Estimate!!Total:!!Hispanic or Latino: HISPANIC OR LATINO ORIGIN BY RACE
+                 "C17002_001", # Estimate!!Total:RATIO OF INCOME TO POVERTY LEVEL IN THE PAST 12 MONTHS
+                 "C17002_002", # Estimate!!Total:!!Under .50 RATIO OF INCOME TO POVERTY LEVEL IN THE PAST 12 MONTHS 
+                 "C17002_003" #Estimate!!Total:!!.50 to .99 RATIO OF INCOME TO POVERTY LEVEL IN THE PAST 12 MONTHS
+)
+```
+
+```{r}
+
+la_bg_vars <- get_acs(
+  geography = 'block group',
+  state = "LA",
+  variables = bg_census_vars, # see above list
+  year = 2019
+)
+
+la_bg_geo <- get_acs(
+  geography = 'block group',
+  state = "LA",
+  variables = "B02001_001", # see above list
+  year = 2019,
+  geometry = TRUE
+)
+
+```
+
+```{r}
+# transform the returned census data with a variable, estimate, and moe column
+# into a dataframe with a single row for each GEOID and a column for each
+# respective variables estimated value and margin of error
+bg_cast_estimate <- dcast(la_bg_vars, GEOID~variable, value.var="estimate")
+names(bg_cast_estimate) <- c("GEOID",                  
+                 "B02001_001_est", 
+                 "B02001_002_est", 
+                 "B02001_003_est",
+                 "B02001_004_est",
+                 "B03002_012_est",
+                 "C17002_001_est",
+                 "C17002_002_est",
+                 "C17002_003_est")
+bg_cast_moe <- dcast(la_bg_vars, GEOID~variable, value.var="moe")
+names(bg_cast_moe) <- c("GEOID",                  
+                 "B02001_001_moe", 
+                 "B02001_002_moe", 
+                 "B02001_003_moe",
+                 "B02001_004_moe", 
+                 "B03002_012_moe",
+                 "C17002_001_moe",
+                 "C17002_002_moe",
+                 "C17002_003_moe")
+
+bg_cast <- merge(bg_cast_estimate, bg_cast_moe, by='GEOID')
+
+
+```
+
+
+```{r}
+sf::st_write(la_bg_geo, "../data/la_bg_geo.shp", driver="ESRI Shapefile")
+
+# store all of these variables so they can be easily merged by GEOID onto the merged shapefiles downstream
+write.csv(bg_cast, "../data/la_bg_vars.csv", row.names = FALSE)
+```
+

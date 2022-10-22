@@ -1,0 +1,58 @@
+---
+title: "New Orleans Rain Gardens Data Viz"
+output: html_notebook
+---
+
+
+#### Import Data
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(scales)
+```
+
+```{r}
+block_groups <- read.csv("../data/output/block_groups.csv")
+gardens <- read.csv("../data/output/gardens_rainfall.csv")
+crosswalk <- read.csv("../data/output/gardens_block_groups.csv")
+```
+
+```{r}
+block_groups <- merge(block_groups, crosswalk, all.x=TRUE) %>%
+  mutate(garden_location = ifelse(!is.na(address),"Proposed Garden","No Proposed Garden")) %>%
+  select(-address)
+
+block_groups <- unique(block_groups)
+```
+
+
+#### Plot Block Group Variables
+
+```{r}
+ggplot(block_groups, aes(x=percent_nonwhite, y=percent_pov, color=garden_location)) + 
+  geom_jitter(alpha=.9) +
+  scale_color_manual(values=c("lightgrey", "darkblue"), name="") + 
+  geom_hline(yintercept=mean(block_groups$percent_pov, na.rm=TRUE), linetype = 'dashed', alpha=.4) + 
+  geom_vline(xintercept=mean(block_groups$percent_nonwhite, na.rm=TRUE), linetype='dashed', alpha=.4) + 
+  labs(x="Percent Non-White", y="Percent Below Poverty Line",
+       title="Most rain gardens to serve majority-minority communities", subtitle="Orleans Parish, 2019 ACS") + 
+  geom_text(aes(4,mean(percent_pov), label="Average: 24.8%", vjust=-.75), size=2) + 
+  geom_text(aes(x=64.5,y=92, label="Average: 64.5%", vjust=-.75), size=2, angle=90) + 
+  theme_minimal() +
+  theme()
+```
+
+```{r}
+ggplot(gardens, aes(x=monthly_gallons, y=reorder(address,monthly_gallons))) + 
+  geom_bar(fill='lightblue', stat='identity'
+           ) + 
+  theme_minimal() + 
+  labs(x="", y="",
+       title="Proposed rain gardens would each capture 4,000-37,000 gallons monthly",
+       subtitle="NOAA Precipitation, 1947-2016") + 
+  scale_x_continuous(labels=label_comma()) + 
+  geom_vline(xintercept=mean(gardens$monthly_gallons, na.rm=TRUE), linetype='dashed', alpha=.4) +
+  geom_text(aes(x=13427, y=4, label="Average: 13,427", angle=90, vjust=-.75), size=2, color='lightblue') + 
+  theme(panel.grid.major.y = element_blank(), axis.text.y=element_blank())
+```
+
