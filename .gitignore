@@ -4,3 +4,4 @@ data/input/la_bg_geo.shp
 data/input/la_bg_geo.shx
 data/input/precipitation.csv
 raingarden_report.pages
+analysis/raingarden_dataviz.nb.html
